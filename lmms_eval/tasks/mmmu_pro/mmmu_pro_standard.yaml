@@ -1,5 +1,5 @@
 task: "mmmu_pro_standard"
-dataset_path: MMMU/MMMU_Pro
+dataset_path: /data/mllm/evals/MMMU_Pro
 dataset_name: "standard (10 options)"
 test_split: test
 output_type: generate_until

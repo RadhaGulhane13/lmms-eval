@@ -1,4 +1,4 @@
-dataset_path: Lin-Chen/MMStar
+dataset_path: /data/mllm/evals/MMStar
 dataset_kwargs:
   token: True
 task: "mmstar"

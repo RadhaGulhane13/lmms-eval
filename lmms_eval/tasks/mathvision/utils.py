@@ -2,6 +2,7 @@ import json
 import os
 import time
 from pathlib import Path
+import re
 
 import pandas as pd
 import requests
@@ -92,15 +93,36 @@ def mathvision_doc_to_visual(doc):
     return [doc["decoded_image"].convert("RGB")]
 
 
-def mathvision_doc_to_text(doc):
+def geninput(question, options):
+    options = ''
+    if len(options) > 0:
+        assert len(options) == 5, question
+        if ''.join(options) != 'ABCDE':
+            options = f"(A) {options[0]}\n(B) {options[1]}\n(C) {options[2]}\n(D) {options[3]}\n(E) {options[4]}\n"
+    # input = f"{question}\n{options}\nAnswer the question using a single word or phrase."
+    query_prompt = 'Please solve the problem step by step and put your answer in one "\\boxed{}". If it is a multiple choice question, only one letter is allowed in the "\\boxed{}".\n'+f"{question}\n{options}"
+    return query_prompt
+
+def mathvision_doc_to_text(doc, lmms_eval_specific_kwargs=None):
     question, choices = doc["question"], doc["options"]
+    # return geninput(question, choices)
     len_choices = len(choices)
     options = [chr(ord("A") + i) for i in range(len_choices)]
     choices_str = "\n".join([f"{option}. {choice}" for option, choice in zip(options, choices)])
+    # if choices_str:
+    #     query_prompt = f"{question}\nChoices: {choices_str}\n{lmms_eval_specific_kwargs['mc_prompt']}"
+    # else:
+    #     query_prompt = f"{question}\n{lmms_eval_specific_kwargs['short_answer_prompt']}"
     if choices_str:
         query_prompt = f"{question}\nChoices: {choices_str}"
     else:
         query_prompt = question
+    query_prompt += (
+        "Output the step-by-step reasoning in <think> </think> and the final answer in <answer> </answer> tags.\n"
+        "The <answer> tag should include the final answer.\n"
+        "The output answer format should be as follows:\n"
+        "<think>Your reasoning process</think> <answer>Final answer</answer>\n"
+    )
     return query_prompt
 
 
@@ -130,7 +152,10 @@ def mathvision_gpt_eval_process_results(doc, results):
 def mathvision_process_results(doc, results):
     correct_list = []
     for pred in results:
-        model_answer = pred.strip()
+        # model_answer = pred.strip()
+        # print(pred)
+        content_match = re.search(r'<answer>(.*?)</answer>', pred)
+        model_answer = content_match.group(1).strip() if content_match else pred.strip()
 
         gt_answer = str(doc["answer"])
         if len(doc["options"]) > 0:

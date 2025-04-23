@@ -50,6 +50,7 @@ class Qwen2_5_VL(lmms):
         fps: Optional[float] = None,  # Only applicable if use_custom_video_loader is True
         max_image_size: Optional[int] = None,  # Only applicable if use_custom_video_loader is True
         system_prompt: Optional[str] = "You are a helpful assistant.",
+        # system_prompt: Optional[str] = "You are a helpful assistant good at solving problems with step-by-step reasoning.\nYou should first think about the reasoning process and then provide the user with the answer.",
         interleave_visuals: Optional[bool] = False,
         reasoning_prompt: Optional[str] = None,
         **kwargs,
@@ -194,11 +195,6 @@ class Qwen2_5_VL(lmms):
             task = task[0]
             split = split[0]
             visual_list = [doc_to_visual[0](self.task_dict[task][split][ids]) for ids in doc_id]
-            if None in visual_list:
-                visual_list = []
-            else:
-                visual_list = self.flatten(visual_list)
-
             gen_kwargs = all_gen_kwargs[0]
 
             # Set default values for until and max_new_tokens
@@ -211,7 +207,6 @@ class Qwen2_5_VL(lmms):
                     until = [until]
                 elif not isinstance(until, list):
                     raise ValueError(f"Expected `gen_kwargs['until']` to be of type Union[str,list] but got {type(until)}")
-
             if isinstance(contexts, tuple):
                 contexts = list(contexts)
 
@@ -230,7 +225,7 @@ class Qwen2_5_VL(lmms):
                     contexts[i] = context
 
                 processed_visuals = []
-                for visual in visual_list:
+                for visual in visual_list[i]:
                     if isinstance(visual, str) and visual.endswith((".mp4", ".avi", ".mov")):  # Video file
                         vr = decord.VideoReader(visual)
                         first_frame = vr[0].asnumpy()
@@ -318,11 +313,13 @@ class Qwen2_5_VL(lmms):
 
             generated_ids_trimmed = [out_ids[len(in_ids) :] for in_ids, out_ids in zip(inputs.input_ids, cont)]
             answers = self.processor.batch_decode(generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False)
-            for i, ans in enumerate(answers):
-                for term in until:
-                    if len(term) > 0:
-                        ans = ans.split(term)[0]
-                answers[i] = ans
+            # print(answers[0])
+            # for i, ans in enumerate(answers):
+            #     for term in until:
+            #         if len(term) > 0:
+            #             ans = ans.split(term)[0]
+            #     answers[i] = ans
+            #     print(answers[i])
 
             for ans, context in zip(answers, contexts):
                 res.append(ans)

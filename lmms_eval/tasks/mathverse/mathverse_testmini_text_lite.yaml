@@ -1,4 +1,4 @@
-dataset_path: CaraJ/MathVerse-lmmseval
+dataset_path: /data/mllm/evals/MathVerse/
 dataset_name: testmini_version_split
 dataset_kwargs:
   token: False
